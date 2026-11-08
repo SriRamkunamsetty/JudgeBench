@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JudgeBench - AI-as-a-Judge Reliability & Inter-Rater Calibration</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-badge">JB</div>
+      <div>
+        <h1>JudgeBench <span class="tag">AI Reliability Suite</span></h1>
+        <p class="subtitle">AI-as-a-Judge Calibration, Inter-Rater Agreement & Bias Detection</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button id="btn-load-sample" class="btn btn-secondary">Load Ground Truth Benchmark</button>
+      <button id="btn-calibrate" class="btn btn-primary">Run Calibration Analysis</button>
+      <button id="btn-export-md" class="btn btn-outline">Export Report (MD)</button>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Top KPI Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Inter-Rater Correlation (r)</span>
+        <span class="kpi-value" id="kpi-pearson">--</span>
+        <span class="kpi-subtext" id="kpi-pearson-desc">Pearson correlation coefficient</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Quadratic Weighted Kappa</span>
+        <span class="kpi-value" id="kpi-kappa">--</span>
+        <span class="kpi-subtext" id="kpi-kappa-desc">Chance-adjusted agreement</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Mean Absolute Error (MAE)</span>
+        <span class="kpi-value" id="kpi-mae">--</span>
+        <span class="kpi-subtext" id="kpi-mae-desc">Average score divergence</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Verbosity Bias Index</span>
+        <span class="kpi-value" id="kpi-verbosity">--</span>
+        <span class="kpi-subtext" id="kpi-verbosity-desc">Length-to-score inflation</span>
+      </div>
+    </section>
+
+    <!-- Bias Insights Bar -->
+    <section class="bias-banner" id="bias-banner">
+      <div class="bias-indicator">
+        <span class="indicator-title">Judge Leniency Shift:</span>
+        <span id="bias-leniency" class="indicator-value">--</span>
+      </div>
+      <div class="bias-indicator">
+        <span class="indicator-title">Severe Disagreements (&ge;1.0):</span>
+        <span id="bias-disagreements" class="indicator-value">0</span>
+      </div>
+      <div class="bias-indicator">
+        <span class="indicator-title">Calibration Status:</span>
+        <span id="bias-status" class="status-badge status-neutral">Pending Analysis</span>
+      </div>
+    </section>
+
+    <!-- Main Workspace Split -->
+    <div class="content-split">
+      <!-- Left: Pairwise Evaluation List -->
+      <section class="panel list-panel">
+        <div class="panel-header">
+          <h2>Evaluated Conversations (<span id="pair-count">0</span>)</h2>
+          <div class="filter-controls">
+            <label><input type="checkbox" id="filter-disagreements" /> Show Disagreements Only</label>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Prompt Preview</th>
+                <th>Human</th>
+                <th>AI Judge</th>
+                <th>Delta</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="pairs-table-body">
+              <tr>
+                <td colspan="6" class="empty-state">No evaluations loaded. Click "Load Ground Truth Benchmark" above.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Right: Detailed Adjudication Inspector -->
+      <section class="panel detail-panel" id="detail-panel">
+        <div class="panel-header">
+          <h2>Adjudication & Rationale Inspector</h2>
+          <span id="inspector-badge" class="badge">Select a Row</span>
+        </div>
+        <div class="inspector-content" id="inspector-empty">
+          <p class="placeholder-text">Click on any evaluated conversation row in the table to inspect human rationale vs AI judge rationale and diagnose scoring divergences.</p>
+        </div>
+        <div class="inspector-content hidden" id="inspector-body">
+          <div class="detail-group">
+            <label>Prompt Scenario</label>
+            <div id="inspector-prompt" class="detail-box code-box"></div>
+          </div>
+          <div class="detail-group">
+            <label>Chatbot Response</label>
+            <div id="inspector-response" class="detail-box code-box"></div>
+          </div>
+          <div class="scores-comparison">
+            <div class="score-card human-score-card">
+              <div class="score-title">Human Specialist Rating</div>
+              <div class="score-num" id="inspector-human-score">--</div>
+              <div class="score-rationale" id="inspector-human-rationale"></div>
+            </div>
+            <div class="score-card ai-score-card">
+              <div class="score-title">AI Judge Rating</div>
+              <div class="score-num" id="inspector-ai-score">--</div>
+              <div class="score-rationale" id="inspector-ai-rationale"></div>
+            </div>
+          </div>
+          <div class="detail-meta-grid">
+            <div><strong>Criterion:</strong> <span id="inspector-criterion">--</span></div>
+            <div><strong>Model Evaluated:</strong> <span id="inspector-model">--</span></div>
+            <div><strong>Response Length:</strong> <span id="inspector-length">--</span> chars</div>
+            <div><strong>Divergence Delta:</strong> <span id="inspector-delta">--</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
